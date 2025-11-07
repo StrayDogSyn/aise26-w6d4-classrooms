@@ -35,17 +35,14 @@ python live-coding/02_kafka_partitions.py C1
 
 # Terminal 3: Consumer 2  
 python live-coding/02_kafka_partitions.py C2
-```
-
-**Observations to Note:**
-
+```text
+#### Observations to Note:
 - How many partitions does each consumer get assigned?
 - Are messages with the same `user` key always on the same partition?
 - Is work distributed evenly between consumers?
 - Look at the "PARTITION DISTRIBUTION ANALYSIS" output
 
-**Expected Behavior:**
-
+#### Expected Behavior:
 ✅ Each consumer gets assigned specific partitions (sticky assignment)
 ✅ Messages with same key → same partition (ordering preserved)
 ✅ Work is distributed relatively evenly across partitions
@@ -68,24 +65,20 @@ python live-coding/02_kafka_partitions.py C1
 
 # Terminal 3: Consumer 2
 python live-coding/02_kafka_partitions.py C2
-```
-
-**Observations to Note:**
-
+```text
+#### Observations to Note:
 - Look at the "⚠️ HOT PARTITION DETECTED" warning
 - Which consumer gets most of the work?
 - What's the partition distribution? (One partition has 50+ messages)
 - Does one consumer sit mostly idle?
 
-**Expected Behavior:**
-
+#### Expected Behavior:
 ⚠️ Hot partition detected (one partition has disproportionate traffic)
 ⚠️ One consumer processes 50+ messages, other processes far fewer
 ⚠️ Uneven work distribution leads to bottleneck
 ⚠️ The consumer with the hot partition becomes the limiting factor
 
-**Real-World Example:**
-
+#### Real-World Example:
 Imagine an e-commerce site where:
 
 - `user-0` is a bot making thousands of orders/minute
@@ -97,16 +90,13 @@ Imagine an e-commerce site where:
 
 ```bash
 python live-coding/02_kafka_partitions.py produce 100 80
-```
-
-**Observations to Note:**
-
+```text
+#### Observations to Note:
 - How bad is the distribution now?
 - What happens to throughput?
 - Is this a realistic scenario?
 
-**Expected Behavior:**
-
+#### Expected Behavior:
 🔥 Severe bottleneck on one partition
 🔥 One consumer processing 80+ messages, others processing <10
 🔥 System throughput limited by single consumer
@@ -126,26 +116,21 @@ python live-coding/02_kafka_partitions.py C2
 python live-coding/02_kafka_partitions.py C3
 python live-coding/02_kafka_partitions.py C4
 python live-coding/02_kafka_partitions.py C5
-```
-
-**Observations to Note:**
-
+```text
+#### Observations to Note:
 - How many consumers actually get work?
 - Do some consumers sit completely idle?
 - What's happening with partition assignment?
 
-**Expected Behavior:**
-
+#### Expected Behavior:
 ⚠️ Only 3 consumers get partition assignments (one partition each)
 ⚠️ 2 consumers sit completely idle (no partitions assigned)
 ⚠️ Idle consumers still consume resources (memory, connections)
 
-**Rule of Thumb:**
-
-```
+#### Rule of Thumb:
+```text
 Max useful consumers = Number of partitions
-```
-
+```text
 **Question:** What if you need more parallelism?
 
 **Answer:** Increase partition count (but can't decrease later!)
@@ -158,33 +143,26 @@ Max useful consumers = Number of partitions
 
 **Concept:** Add a random suffix to hot keys to distribute them across partitions
 
-**Before (hot key):**
-
+#### Before (hot key):
 ```python
 key = "user-0"  # All messages → partition 0
-```
-
-**After (salted key):**
-
+```text
+#### After (salted key):
 ```python
 import random
 salt = random.randint(0, 3)  # 0-3
 key = f"user-0-{salt}"  # Distributes across partitions
-```
-
-**Trade-off:**
-
+```text
+#### Trade-off:
 ✅ Distributes load across partitions
 ❌ **LOSES ORDERING GUARANTEE** (messages from same user can be out of order)
 
-**When to use:**
-
+#### When to use:
 - Ordering doesn't matter (metrics, logs, analytics)
 - Partial ordering is acceptable (order within 5-minute window)
 - Throughput more important than strict ordering
 
-**When NOT to use:**
-
+#### When NOT to use:
 - Financial transactions (must be ordered)
 - State machines (order affects outcome)
 - Audit logs (must be sequential)
@@ -193,44 +171,35 @@ key = f"user-0-{salt}"  # Distributes across partitions
 
 **Concept:** More partitions = more parallelism
 
-**Before:**
-
+#### Before:
 ```bash
 # Topic with 3 partitions → max 3 parallel consumers
-```
-
-**After:**
-
+```text
+#### After:
 ```bash
 # Topic with 10 partitions → max 10 parallel consumers
 # Note: Can't decrease partitions later!
-```
-
-**Trade-off:**
-
+```text
+#### Trade-off:
 ✅ More parallelism (more consumers can work simultaneously)
 ✅ Better distribution (hot key still hot, but less impact)
 ❌ Can't decrease later (Kafka limitation)
 ❌ More partitions = more resources (file handles, memory)
 ❌ Rebalancing takes longer
 
-**When to use:**
-
+#### When to use:
 - Predictable high throughput
 - Need more than current partition count allows
 - Can plan for future growth
 
-**Rule of thumb:**
-
-```
+#### Rule of thumb:
+```text
 Partitions = max(
     expected_throughput / consumer_throughput,
     max_parallel_consumers_needed
 )
-```
-
-**Example:**
-
+```text
+#### Example:
 - Target: 10,000 msg/sec
 - One consumer: 1,000 msg/sec
 - Partitions needed: 10,000 / 1,000 = **10 partitions**
@@ -239,8 +208,7 @@ Partitions = max(
 
 **Concept:** Use multiple attributes to create keys
 
-**Example (e-commerce orders):**
-
+#### Example (e-commerce orders):
 ```python
 # Instead of just user_id:
 key = f"{user_id}"  # Hot users create hot partitions
@@ -249,10 +217,8 @@ key = f"{user_id}"  # Hot users create hot partitions
 key = f"{user_id}:{order_date}"  # Distributes by user AND date
 # or
 key = f"{user_id}:{region}"  # Distributes by user AND region
-```
-
-**Trade-off:**
-
+```text
+#### Trade-off:
 ✅ Better distribution for hot users
 ✅ Maintains some ordering (within date or region)
 ❌ More complex key management
@@ -262,24 +228,19 @@ key = f"{user_id}:{region}"  # Distributes by user AND region
 
 **Concept:** Route hot keys to a separate topic with more partitions
 
-**Architecture:**
-
-```
+#### Architecture:
+```text
 Normal Topic (3 partitions)  → 90% of traffic
 Hot User Topic (20 partitions) → 10% of traffic (but from 1 user)
-```
-
-**Implementation:**
-
+```text
+#### Implementation:
 ```python
 if is_hot_user(user_id):
     producer.send("hot-users-topic", value=event, key=user_id)
 else:
     producer.send("normal-topic", value=event, key=user_id)
-```
-
-**Trade-off:**
-
+```text
+#### Trade-off:
 ✅ Isolates hot keys from normal traffic
 ✅ Can tune partitions per topic
 ❌ More complex (2 topics, 2 consumer groups)
@@ -291,8 +252,7 @@ else:
 
 ### 1. How to detect hot keys in production?
 
-**Metrics to monitor:**
-
+#### Metrics to monitor:
 | Metric | Tool | Alert Threshold |
 |--------|------|-----------------|
 | **Per-partition lag** | Kafka JMX, Datadog | Lag > 1000 and growing |
@@ -300,8 +260,7 @@ else:
 | **Consumer lag by partition** | Burrow, Datadog | One partition lagging behind others |
 | **Processing time per partition** | Application metrics | >2x average |
 
-**Detection Code (pseudo):**
-
+#### Detection Code (pseudo):
 ```python
 # Monitor partition-level metrics
 for partition in topic.partitions:
@@ -310,8 +269,7 @@ for partition in topic.partitions:
     
     if lag > 1000 and throughput > avg_throughput * 2:
         alert(f"Hot partition detected: {partition}")
-```
-
+```text
 **Question for group:** At what point do you consider a key "hot"?
 
 **Answer:** When one partition has >2x the average traffic and causes lag
@@ -324,22 +282,18 @@ for partition in topic.partitions:
 | **Partial ordering** | Salt keys, more partitions | Higher throughput, order within subset |
 | **No ordering needed** | Round-robin, random keys | Maximum throughput, no ordering |
 
-**Real-world examples:**
-
-**Strict ordering needed:**
-
+#### Real-world examples:
+#### Strict ordering needed:
 - Bank transactions (must process deposits before withdrawals)
 - Blockchain (blocks must be sequential)
 - State machines (state transitions depend on order)
 
-**Partial ordering acceptable:**
-
+#### Partial ordering acceptable:
 - Social media posts (order within 1 minute is fine)
 - Log aggregation (order within time window)
 - Analytics events (order within session)
 
-**No ordering needed:**
-
+#### No ordering needed:
 - Metrics/monitoring (count, sum, average)
 - Image processing (each image independent)
 - Email sending (order doesn't matter)
@@ -354,33 +308,28 @@ for partition in topic.partitions:
 
 ### 3. When to use more partitions?
 
-**Increase partitions when:**
-
+#### Increase partitions when:
 ✅ Consumer lag is growing despite adding consumers
 ✅ You need more parallel consumers than current partition count
 ✅ Hot key problem persists after other mitigations
 ✅ Planning for future growth (but not too many too early)
 
-**Don't increase partitions when:**
-
+#### Don't increase partitions when:
 ❌ Lag is due to slow consumer code (fix the code first)
 ❌ Already have more partitions than consumers (add consumers instead)
 ❌ Topic has low traffic (overhead outweighs benefits)
 ❌ Need strict ordering (more partitions = more partial ordering)
 
-**Partition planning formula:**
-
-```
+#### Partition planning formula:
+```text
 Minimum partitions = max(
     peak_throughput / single_consumer_throughput,
     number_of_consumers_needed
 )
 
 Recommended = minimum * 1.5 (buffer for growth)
-```
-
-**Example:**
-
+```text
+#### Example:
 - Peak: 5,000 msg/sec
 - Consumer throughput: 500 msg/sec
 - Minimum: 5,000 / 500 = 10 partitions
@@ -388,28 +337,24 @@ Recommended = minimum * 1.5 (buffer for growth)
 
 ### 4. Real-world hot key scenarios
 
-**Scenario 1: Celebrity Tweet**
-
+#### Scenario 1: Celebrity Tweet
 - Problem: Celebrity with 10M followers tweets
 - Effect: 10M notifications, all with same key (celebrity_id)
 - Solution: Salt the key, use composite key (celebrity_id:follower_batch)
 
-**Scenario 2: Flash Sale**
-
+#### Scenario 2: Flash Sale
 - Problem: Product goes on sale, thousands of orders/second
 - Effect: All orders for product_id="12345" go to one partition
 - Solution: Key by user_id instead of product_id, or salt the key
 
-**Scenario 3: DDoS Attack**
-
+#### Scenario 3: DDoS Attack
 - Problem: Attacker floods system with requests for one user
 - Effect: One partition overwhelmed, others idle
 - Solution: Rate limiting, dedicated topic for suspicious traffic
 
 **Question for group:** What about a viral video on YouTube?
 
-**Answer:**
-
+#### Answer:
 - Millions of views, but each view is a separate user
 - Key by user_id (views distributed across partitions)
 - Aggregation happens downstream (not in Kafka)
@@ -447,8 +392,7 @@ producer = KafkaProducer(
     bootstrap_servers='localhost:9092',
     partitioner=custom_partitioner
 )
-```
-
+```text
 ### Challenge 2: Build Hot Key Detector
 
 Create a monitoring script that detects hot partitions:
@@ -477,8 +421,7 @@ def detect_hot_partitions(topic, window_seconds=60):
     for p, count in partition_counts.items():
         if count > avg * 2:
             print(f"🔥 Hot partition detected: {p} ({count} msgs vs avg {avg:.1f})")
-```
-
+```text
 ### Challenge 3: Simulate and Fix Hot Key Scenario
 
 1. Create a hot key scenario (80% traffic to one key)
@@ -522,4 +465,3 @@ def detect_hot_partitions(topic, window_seconds=60):
 - Alert on hot partition detection
 - Use metrics to guide scaling decisions
 - Test mitigation strategies with production-like load
-
